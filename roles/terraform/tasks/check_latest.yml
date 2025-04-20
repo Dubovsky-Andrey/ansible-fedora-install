@@ -35,13 +35,10 @@
 # 4. Решаем, что делать
 - set_fact:
     terraform_action: >-
-      {% if terraform_installed == 'none' %}
-        install
-      {% elif terraform_latest is version_compare(terraform_installed, '>', strict=True) %}
-        update
-      {% else %}
-        skip
-      {% endif %}
+      {% if terraform_installed == 'none' %}install
+      {% elif terraform_latest is version_compare(terraform_installed, '>', strict=True) %}update
+      {% else %}skip{% endif %}
+
   changed_when: false
 
 # 5. Показываем, что получилось (для вашей проверки)
