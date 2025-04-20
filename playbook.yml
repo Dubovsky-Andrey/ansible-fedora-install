@@ -1,6 +1,7 @@
 ---
 - name: Configure localhost and install Terraform
   hosts: local
-  become: true
+  gather_facts: yes
   roles:
-    - terraform
+    - role: terraform
+      become: true
