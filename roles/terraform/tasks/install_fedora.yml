@@ -1,17 +1,29 @@
 ---
-# Add the official HashiCorp repository
-- name: Add HashiCorp repo
-  ansible.builtin.yum_repository:
-    name: hashicorp
-    description: HashiCorp Stable Repository
-    baseurl: "https://rpm.releases.hashicorp.com/fedora/$releasever/$basearch/stable"
-    gpgcheck: yes
-    gpgkey: "https://rpm.releases.hashicorp.com/gpg"
-    enabled: yes
+# roles/terraform/tasks/install_fedora.yml
+# Fedora‑only installer that mirrors:
+#   1) sudo dnf install -y dnf-plugins-core
+#   2) sudo dnf config-manager --add-repo https://rpm.releases.hashicorp.com/fedora/hashicorp.repo
+#   3) sudo dnf install -y terraform
 
-# Install or update Terraform package
-- name: Install Terraform
+- name: Ensure dnf-plugins-core is present
   ansible.builtin.dnf:
-    name: "terraform{{ '==' + terraform_state if terraform_state not in ['present', 'latest'] else '' }}"
-    state: "{{ terraform_state }}"
+    name: dnf-plugins-core
+    state: present
+    update_cache: yes
+
+- name: Add HashiCorp repo via config‑manager (idempotent)
+  ansible.builtin.command:
+    cmd: >
+      dnf config-manager --add-repo
+      https://rpm.releases.hashicorp.com/fedora/hashicorp.repo
+  args:
+    # создаст файл /etc/yum.repos.d/hashicorp.repo, поэтому второй запуск пропускается
+    creates: /etc/yum.repos.d/hashicorp.repo
+  register: add_repo
+  changed_when: add_repo.rc == 0
+
+- name: Install / upgrade Terraform
+  ansible.builtin.dnf:
+    name: terraform
+    state: "{{ terraform_state | default('latest') }}"
     update_cache: yes
