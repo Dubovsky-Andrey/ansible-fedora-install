@@ -1,0 +1,2 @@
+# Default download URL template
+terraform_pkg_url: "https://releases.hashicorp.com/terraform/{{ terraform_version }}/terraform_{{ terraform_version }}_{{ ansible_system | lower }}_amd64.zip"

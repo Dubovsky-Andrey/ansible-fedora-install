@@ -1,0 +1,35 @@
+---
+- name: Query Checkpoint API for latest Terraform
+  uri:
+    url: "https://checkpoint.hashicorp.com/v1/check/terraform"
+    return_content: yes
+  register: checkpoint
+  retries: 3
+  delay: 2
+  until: checkpoint.status == 200
+  changed_when: false
+
+- name: Set fact with latest version
+  set_fact:
+    terraform_latest: "{{ checkpoint.json.current_version | default('0.0.0') }}"
+
+- name: Get current installed version (if any)
+  command: terraform version -json
+  register: tf_installed
+  changed_when: false
+  failed_when: false
+
+- name: Parse installed version (or fallback)
+  set_fact:
+    terraform_installed: >-
+      {{ (tf_installed.stdout | default('{}') | from_json).terraform_version
+         if tf_installed.rc == 0 else '0.0.0' }}
+
+- name: Decide if upgrade is needed
+  debug:
+    msg: "Installed: {{ terraform_installed }}, latest: {{ terraform_latest }}"
+  when: terraform_latest is version_compare(terraform_installed, '>', strict=True)
+
+- name: Include OS‑specific install tasks when update required
+  include_tasks: "{{ ansible_os_family | lower }}.yml"
+  when: terraform_latest is version_compare(terraform_installed, '>', strict=True)

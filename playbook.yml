@@ -1,0 +1,6 @@
+---
+- name: Configure localhost and install Terraform
+  hosts: local
+  become: true
+  roles:
+    - terraform
