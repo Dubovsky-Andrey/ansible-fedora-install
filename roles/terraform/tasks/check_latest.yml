@@ -1,5 +1,5 @@
-# Query HashiCorp Checkpoint API and decide what to do
-- name: Get latest Terraform release
+# 1. Запрашиваем свежий релиз
+- name: Query Checkpoint API
   uri:
     url: https://checkpoint-api.hashicorp.com/v1/check/terraform
     return_content: yes
@@ -9,31 +9,45 @@
   until: checkpoint is succeeded
   changed_when: false
 
-- name: Set fact with latest version
-  set_fact:
+- set_fact:
     terraform_latest: "{{ checkpoint.json.current_version }}"
 
-- name: Detect if Terraform already installed
-  command: terraform version -json
-  register: tf_installed
+# 2. Проверяем, установлен ли terraform (без JSON‑парсинга, чтобы не падать)
+- name: Is terraform binary in PATH?
+  shell: command -v terraform
+  register: tf_bin
   changed_when: false
-  failed_when: false # ok if not installed
+  failed_when: false
 
-- name: Parse installed version (or fallback 0.0.0)
-  set_fact:
+# 3. Если бинарь найден — получаем версию, иначе помечаем как 'none'
+- name: Get installed version (if any)
+  shell: terraform version -json
+  when: tf_bin.rc == 0
+  register: tf_version
+  changed_when: false
+  failed_when: false
+
+- set_fact:
     terraform_installed: >-
-      {{ (tf_installed.stdout | default('{}') | from_json).terraform_version
-         if tf_installed.rc == 0 else '0.0.0' }}
+      {{ (tf_version.stdout | from_json).terraform_version
+         if tf_bin.rc == 0 else 'none' }}
 
-- name: Decide required action (install / update / nothing)
-  set_fact:
+# 4. Решаем, что делать
+- set_fact:
     terraform_action: >-
-      {% if terraform_installed == '0.0.0' %}install
-      {% elif terraform_latest is version_compare(terraform_installed, '>', strict=True) %}update
-      {% else %}skip{% endif %}
+      {% if terraform_installed == 'none' %}
+        install
+      {% elif terraform_latest is version_compare(terraform_installed, '>', strict=True') %}
+        update
+      {% else %}
+        skip
+      {% endif %}
   changed_when: false
 
-- name: Show planned action
-  debug:
-    msg: "Installed: {{ terraform_installed }}, latest: {{ terraform_latest }}, action: {{ terraform_action }}"
+# 5. Показываем, что получилось (для вашей проверки)
+- debug:
+    msg: |
+      Latest: {{ terraform_latest }}
+      Installed (none если нет): {{ terraform_installed }}
+      Action: {{ terraform_action }}
   changed_when: false
