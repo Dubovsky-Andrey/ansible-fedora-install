@@ -1,6 +1,0 @@
-# Update existing Terraform to the target version
-- name: Upgrade Terraform to {{ terraform_latest }}
-  dnf:
-    name: "terraform-{{ terraform_latest }}"
-    state: present # brings package to wanted version
-  become: true

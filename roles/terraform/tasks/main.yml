@@ -1,2 +1,5 @@
 ---
-- import_tasks: check_latest.yml
+# Run Fedora‑specific tasks only when the host is Fedora
+- name: Include Fedora installer
+  ansible.builtin.include_tasks: install_fedora.yml
+  when: ansible_distribution == "Fedora"

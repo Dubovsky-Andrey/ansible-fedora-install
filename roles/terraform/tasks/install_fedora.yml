@@ -1,0 +1,17 @@
+---
+# Add the official HashiCorp repository
+- name: Add HashiCorp repo
+  ansible.builtin.yum_repository:
+    name: hashicorp
+    description: HashiCorp Stable Repository
+    baseurl: "https://rpm.releases.hashicorp.com/fedora/$releasever/$basearch/stable"
+    gpgcheck: yes
+    gpgkey: "https://rpm.releases.hashicorp.com/gpg"
+    enabled: yes
+
+# Install or update Terraform package
+- name: Install Terraform
+  ansible.builtin.dnf:
+    name: "terraform{{ '==' + terraform_state if terraform_state not in ['present', 'latest'] else '' }}"
+    state: "{{ terraform_state }}"
+    update_cache: yes

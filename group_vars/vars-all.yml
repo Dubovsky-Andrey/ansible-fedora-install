@@ -1,2 +1,2 @@
-# Terraform version to install
-terraform_version: "1.7.5"
+# Terraform package state can be 'present', 'latest' or a specific version
+terraform_state: latest
