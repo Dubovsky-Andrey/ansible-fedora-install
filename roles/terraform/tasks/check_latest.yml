@@ -37,7 +37,7 @@
     terraform_action: >-
       {% if terraform_installed == 'none' %}
         install
-      {% elif terraform_latest is version_compare(terraform_installed, '>', strict=True') %}
+      {% elif terraform_latest is version_compare(terraform_installed, '>', strict=True) %}
         update
       {% else %}
         skip
