@@ -1,7 +1,24 @@
 ---
-- name: Configure localhost and install Terraform
+- name: Install or update Terraform on localhost (RedHat family)
   hosts: local
   gather_facts: yes
-  roles:
-    - role: terraform
-      become: true
+
+  tasks:
+    # 1️— вычисляем «что делать» и последнюю версию
+    - name: Include version‑check logic
+      import_role:
+        name: terraform
+        tasks_from: check_latest.yml
+
+    # 2️— в зависимости от результата
+    - name: Install Terraform first time
+      import_role:
+        name: terraform
+        tasks_from: install_redhat.yml
+      when: terraform_action == "install"
+
+    - name: Update Terraform to latest
+      import_role:
+        name: terraform
+        tasks_from: update_redhat.yml
+      when: terraform_action == "update"

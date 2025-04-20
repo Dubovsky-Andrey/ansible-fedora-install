@@ -1,36 +1,39 @@
----
-- name: Query Checkpoint API for latest Terraform
+# Query HashiCorp Checkpoint API and decide what to do
+- name: Get latest Terraform release
   uri:
-    url: "https://checkpoint.hashicorp.com/v1/check/terraform"
+    url: https://checkpoint-api.hashicorp.com/v1/check/terraform
     return_content: yes
   register: checkpoint
-  retries: 3
-  delay: 2
-  until: checkpoint.status is defined and checkpoint.status == 200
-  failed_when: checkpoint.status is not defined or checkpoint.status != 200
+  retries: 4
+  delay: 3
+  until: checkpoint is succeeded
   changed_when: false
 
 - name: Set fact with latest version
   set_fact:
-    terraform_latest: "{{ checkpoint.json.current_version | default('0.0.0') }}"
+    terraform_latest: "{{ checkpoint.json.current_version }}"
 
-- name: Get current installed version (if any)
+- name: Detect if Terraform already installed
   command: terraform version -json
   register: tf_installed
   changed_when: false
-  failed_when: false
+  failed_when: false # ok if not installed
 
-- name: Parse installed version (or fallback)
+- name: Parse installed version (or fallback 0.0.0)
   set_fact:
     terraform_installed: >-
       {{ (tf_installed.stdout | default('{}') | from_json).terraform_version
          if tf_installed.rc == 0 else '0.0.0' }}
 
-- name: Decide if upgrade is needed
-  debug:
-    msg: "Installed: {{ terraform_installed }}, latest: {{ terraform_latest }}"
-  when: terraform_latest is version_compare(terraform_installed, '>', strict=True)
+- name: Decide required action (install / update / nothing)
+  set_fact:
+    terraform_action: >-
+      {% if terraform_installed == '0.0.0' %}install
+      {% elif terraform_latest is version_compare(terraform_installed, '>', strict=True) %}update
+      {% else %}skip{% endif %}
+  changed_when: false
 
-- name: Include OS‑specific install tasks when update required
-  include_tasks: "{{ ansible_os_family | lower }}.yml"
-  when: terraform_latest is version_compare(terraform_installed, '>', strict=True)
+- name: Show planned action
+  debug:
+    msg: "Installed: {{ terraform_installed }}, latest: {{ terraform_latest }}, action: {{ terraform_action }}"
+  changed_when: false
