@@ -6,7 +6,8 @@
   register: checkpoint
   retries: 3
   delay: 2
-  until: checkpoint.status == 200
+  until: checkpoint.status is defined and checkpoint.status == 200
+  failed_when: checkpoint.status is not defined or checkpoint.status != 200
   changed_when: false
 
 - name: Set fact with latest version
